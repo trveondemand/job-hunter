@@ -1,3 +1,4 @@
+import { backfillMissingBasics } from "./backfill";
 import { crawlSources } from "./crawler";
 import { buildAndDeliverDigest } from "./digest";
 import { type CrawlMode, SOURCE_NAMES, type SourceName } from "./types";
@@ -32,9 +33,11 @@ if (command === "crawl") {
   await crawlSources(names, { dryRun: hasFlag("dry-run"), force: hasFlag("force"), mode });
 } else if (command === "digest") {
   await buildAndDeliverDigest(hasFlag("dry-run"));
+} else if (command === "backfill") {
+  await backfillMissingBasics(hasFlag("dry-run"), Number(flag("limit") ?? 500));
 } else {
   console.error(
-    "Usage:\n  bun src/cli.ts crawl [--source all|startupjobs|jooble|jobs_cz|datacruit|company_careers] [--mode targeted|full] [--dry-run] [--force]\n  bun src/cli.ts digest [--dry-run]",
+    "Usage:\n  bun src/cli.ts crawl [--source all|startupjobs|jooble|jobs_cz|datacruit|company_careers] [--mode targeted|full] [--dry-run] [--force]\n  bun src/cli.ts digest [--dry-run]\n  bun src/cli.ts backfill [--limit 500] [--dry-run]",
   );
   process.exitCode = 1;
 }

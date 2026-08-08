@@ -1,0 +1,42 @@
+name: Backfill
+
+on:
+  workflow_dispatch:
+    inputs:
+      limit:
+        description: How many source jobs to re-read
+        type: string
+        default: "500"
+      dry_run:
+        description: Only report what would change
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sofhunter-acquisition
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v6
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Re-read postings stored without an employer
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          BACKFILL_LIMIT: ${{ inputs.limit }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          args=(--limit "$BACKFILL_LIMIT")
+          if [[ "$DRY_RUN" == "true" ]]; then args+=(--dry-run); fi
+          bun src/cli.ts backfill "${args[@]}"

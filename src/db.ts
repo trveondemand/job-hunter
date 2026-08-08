@@ -382,6 +382,49 @@ export async function getCompanyClosureCandidates(companyId: string, before: str
   return data ?? [];
 }
 
+/**
+ * Source jobs whose canonical job never learned an employer, from back when
+ * the jobs.cz and Datacruit detail pages were parsed without their markup.
+ */
+export async function getBackfillCandidates(limit: number) {
+  const { data, error } = await db()
+    .from("source_jobs")
+    .select(
+      "source, source_id, url, title, company, location, snippet, published_at, raw_data, job_id, jobs!inner(company)",
+    )
+    .eq("status", "active")
+    .not("job_id", "is", null)
+    .is("jobs.company", null)
+    .order("source_id")
+    .limit(limit);
+  assertNoError(error, "Read backfill candidates");
+  return data ?? [];
+}
+
+/** Jobs left behind when a re-hydrated posting moved to a new fingerprint. */
+export async function closeOrphanedJobs(): Promise<number> {
+  const { data: jobs, error: jobsError } = await db()
+    .from("jobs")
+    .select("id")
+    .eq("status", "active");
+  assertNoError(jobsError, "Read active jobs");
+
+  const { data: attached, error: attachedError } = await db()
+    .from("source_jobs")
+    .select("job_id")
+    .eq("status", "active")
+    .not("job_id", "is", null);
+  assertNoError(attachedError, "Read attached source jobs");
+
+  const live = new Set((attached ?? []).map((row) => String(row.job_id)));
+  const orphans = (jobs ?? []).map((job) => String(job.id)).filter((id) => !live.has(id));
+  if (orphans.length === 0) return 0;
+
+  const { error } = await db().from("jobs").update({ status: "closed" }).in("id", orphans);
+  assertNoError(error, "Close orphaned jobs");
+  return orphans.length;
+}
+
 export async function markSourceJobClosed(
   source: SourceName,
   sourceId: string,

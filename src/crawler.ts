@@ -12,7 +12,7 @@ import {
   startCrawlRun,
   upsertDiscoveryBatch,
 } from "./db";
-import { fillMissingBasics, needsBasics, resetEnrichmentBudget } from "./enrich";
+import { resetEnrichmentBudget, scoreHydrated } from "./enrich";
 import { SourceHttpError } from "./http";
 import { createFingerprint, evaluateRelevance, isStrictHighFit } from "./relevance";
 import { sources } from "./sources";
@@ -30,7 +30,6 @@ import type {
   DiscoveryRecord,
   JobSource,
   MonitoredCompany,
-  NormalizedJob,
   SourceName,
 } from "./types";
 
@@ -46,19 +45,6 @@ const emptyStats = (): CrawlStats => ({
   newSourceJobs: 0,
   jobsHydrated: 0,
 });
-
-/**
- * Scores a hydrated job, and pays Firecrawl to read the posting when a strong
- * match is missing the employer or the place before scoring it again.
- */
-async function scoreHydrated(job: NormalizedJob, source: SourceName) {
-  const relevance = evaluateRelevance(job, { requireIdentity: true });
-  if (!needsBasics(job, relevance, source)) return { job, relevance };
-
-  const enriched = await fillMissingBasics(job);
-  if (enriched === job) return { job, relevance };
-  return { job: enriched, relevance: evaluateRelevance(enriched, { requireIdentity: true }) };
-}
 
 function discoveryPreview(record: DiscoveryRecord) {
   return {

@@ -1,4 +1,5 @@
 import { FIRECRAWL_MAX_PER_RUN } from "./config";
+import { evaluateRelevance } from "./relevance";
 import type { NormalizedJob, RelevanceResult, SourceName } from "./types";
 
 const FIRECRAWL_SCRAPE_URL = "https://api.firecrawl.dev/v2/scrape";
@@ -113,4 +114,17 @@ export async function fillMissingBasics(job: NormalizedJob): Promise<NormalizedJ
     );
     return job;
   }
+}
+
+/**
+ * Scores a hydrated job, and pays Firecrawl to read the posting when a strong
+ * match is missing the employer or the place before scoring it again.
+ */
+export async function scoreHydrated(job: NormalizedJob, source: SourceName) {
+  const relevance = evaluateRelevance(job, { requireIdentity: true });
+  if (!needsBasics(job, relevance, source)) return { job, relevance };
+
+  const enriched = await fillMissingBasics(job);
+  if (enriched === job) return { job, relevance };
+  return { job: enriched, relevance: evaluateRelevance(enriched, { requireIdentity: true }) };
 }
