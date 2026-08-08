@@ -13,6 +13,25 @@ export type MonitoredCompanyRow = {
   last_error: string | null;
 };
 
+export type CompanyProfileRow = {
+  id: string;
+  company_key: string;
+  company_name: string;
+  website_url: string | null;
+  careers_url_guess: string | null;
+  summary: string | null;
+  industry: string | null;
+  product: string | null;
+  business_model: string | null;
+  customer_profile: string | null;
+  size_hint: string | null;
+  hq_location: string | null;
+  enriched_at: string;
+};
+
+export const COMPANY_PROFILE_COLUMNS =
+  "id, company_key, company_name, website_url, careers_url_guess, summary, industry, product, business_model, customer_profile, size_hint, hq_location, enriched_at";
+
 export type ReviewState = "unseen" | "interested" | "skipped";
 
 export type Review = {

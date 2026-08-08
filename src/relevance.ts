@@ -1,14 +1,8 @@
 import { createHash } from "node:crypto";
+import { normalize } from "./normalize";
 import type { NormalizedJob, RelevanceResult } from "./types";
 
-export function normalize(value: string | null | undefined): string {
-  return (value ?? "")
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("cs-CZ")
-    .replace(/[^a-z0-9]+/g, " ")
-    .trim();
-}
+export { normalize };
 
 const strongRules: Array<[string, RegExp]> = [
   ["customer_success", /\bcustomer success\b/],

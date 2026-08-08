@@ -10,6 +10,77 @@ export type Database = {
         Update: { created_at?: string; user_id?: string };
         Relationships: [];
       };
+      company_profiles: {
+        Row: {
+          business_model: string | null;
+          careers_url_guess: string | null;
+          company_key: string;
+          company_name: string;
+          created_at: string;
+          credits_used: number;
+          customer_profile: string | null;
+          enriched_at: string;
+          hq_location: string | null;
+          id: string;
+          industry: string | null;
+          monitored_company_id: string | null;
+          product: string | null;
+          size_hint: string | null;
+          source_urls: Json;
+          summary: string | null;
+          updated_at: string;
+          website_url: string | null;
+        };
+        Insert: {
+          business_model?: string | null;
+          careers_url_guess?: string | null;
+          company_key: string;
+          company_name: string;
+          created_at?: string;
+          credits_used?: number;
+          customer_profile?: string | null;
+          enriched_at?: string;
+          hq_location?: string | null;
+          id?: string;
+          industry?: string | null;
+          monitored_company_id?: string | null;
+          product?: string | null;
+          size_hint?: string | null;
+          source_urls?: Json;
+          summary?: string | null;
+          updated_at?: string;
+          website_url?: string | null;
+        };
+        Update: {
+          business_model?: string | null;
+          careers_url_guess?: string | null;
+          company_key?: string;
+          company_name?: string;
+          created_at?: string;
+          credits_used?: number;
+          customer_profile?: string | null;
+          enriched_at?: string;
+          hq_location?: string | null;
+          id?: string;
+          industry?: string | null;
+          monitored_company_id?: string | null;
+          product?: string | null;
+          size_hint?: string | null;
+          source_urls?: Json;
+          summary?: string | null;
+          updated_at?: string;
+          website_url?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "company_profiles_monitored_company_id_fkey";
+            columns: ["monitored_company_id"];
+            isOneToOne: false;
+            referencedRelation: "monitored_companies";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       crawl_runs: {
         Row: {
           error: string | null;

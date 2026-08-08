@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(29);
+select plan(32);
 
 select has_table('public', 'jobs', 'jobs table exists');
 select has_table('public', 'source_jobs', 'source_jobs table exists');
@@ -82,6 +82,9 @@ values (
 insert into public.reviews (job_id)
 values ('20000000-0000-0000-0000-000000000001');
 
+insert into public.company_profiles (company_key, company_name)
+values ('pgtap company', 'Pgtap Company s.r.o.');
+
 set local role authenticated;
 select set_config(
   'request.jwt.claims',
@@ -109,6 +112,11 @@ select throws_ok(
   '42501',
   null,
   'a non-allowlisted authenticated user cannot add monitored companies'
+);
+select results_eq(
+  $$select count(*) from public.company_profiles$$,
+  $$values (0::bigint)$$,
+  'a non-allowlisted authenticated user cannot read company profiles'
 );
 
 select set_config(
@@ -144,6 +152,17 @@ select results_eq(
 select lives_ok(
   $$delete from public.monitored_companies where name = 'Policy test'$$,
   'the allowlisted authenticated user can delete monitored companies'
+);
+select results_eq(
+  $$select count(*) from public.company_profiles$$,
+  $$values (1::bigint)$$,
+  'the allowlisted authenticated user can read company profiles'
+);
+select throws_ok(
+  $$insert into public.company_profiles (company_key, company_name) values ('blocked', 'Blocked')$$,
+  '42501',
+  null,
+  'company profiles are written only by the enrich-company function'
 );
 
 reset role;

@@ -175,6 +175,56 @@ a {
   color: var(--muted);
   font-size: 14px;
 }
+.company-panel {
+  margin: -2px 0 2px;
+}
+.company-panel.filled {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 13px 15px;
+  background: #faf7ef;
+}
+.company-summary {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.company-summary.muted {
+  color: var(--muted);
+}
+.company-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 9px 18px;
+  margin: 12px 0 0;
+}
+.company-facts dt {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.company-facts dd {
+  margin: 2px 0 0;
+  font-size: 13px;
+}
+.company-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  margin-top: 13px;
+  border-top: 1px solid #ebe6dc;
+  padding-top: 10px;
+  font-size: 13px;
+}
+.company-panel-actions a {
+  color: var(--green);
+  font-weight: 600;
+  text-decoration: none;
+}
+
 .tags {
   display: flex;
   flex-wrap: wrap;

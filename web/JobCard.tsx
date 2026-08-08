@@ -1,10 +1,16 @@
-import type { ReviewJob, ReviewState } from "./types";
+import { CompanyPanel } from "./CompanyPanel";
+import type { CompanyProfileRow, ReviewJob, ReviewState } from "./types";
 import { reviewFor } from "./types";
 
 type Props = {
   job: ReviewJob;
   busy: boolean;
+  profile: CompanyProfileRow | undefined;
+  monitored: boolean;
+  profileBusy: boolean;
   onReview: (jobId: string, state: ReviewState) => Promise<void>;
+  onEnrich: (company: string, refresh: boolean) => Promise<void>;
+  onWatch: (profile: CompanyProfileRow) => Promise<void>;
 };
 
 const tierLabel = { strong: "Silná shoda", adjacent: "Blízká role", explore: "K prozkoumání" };
@@ -27,7 +33,16 @@ function ruleLabel(rule: string): string {
   return rule.replaceAll("_", " ");
 }
 
-export function JobCard({ job, busy, onReview }: Props) {
+export function JobCard({
+  job,
+  busy,
+  profile,
+  monitored,
+  profileBusy,
+  onReview,
+  onEnrich,
+  onWatch,
+}: Props) {
   const review = reviewFor(job);
   return (
     <article className={`job-card tier-${job.relevance_tier}`}>
@@ -51,6 +66,19 @@ export function JobCard({ job, busy, onReview }: Props) {
         {job.location ?? "Lokalita se ověřuje"}
         {job.remote_mode !== "unknown" && ` · ${job.remote_mode}`}
       </p>
+
+      <CompanyPanel
+        company={job.company}
+        profile={profile}
+        monitored={monitored}
+        busy={profileBusy}
+        onEnrich={(refresh) => {
+          if (job.company) void onEnrich(job.company, refresh);
+        }}
+        onWatch={() => {
+          if (profile) void onWatch(profile);
+        }}
+      />
 
       <div className="tags">
         {job.matched_rules.map((rule) => (
