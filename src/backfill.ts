@@ -1,9 +1,16 @@
 import { closeOrphanedJobs, getBackfillCandidates, saveHydratedJob } from "./db";
-import { resetEnrichmentBudget, scoreHydrated } from "./enrich";
+import { isPortalBoilerplate, resetEnrichmentBudget, scoreHydrated } from "./enrich";
 import { createFingerprint } from "./relevance";
 import { sources } from "./sources";
 import { hydrateCompanyJob } from "./sources/companyCareers";
 import type { DiscoveryRecord, SourceName } from "./types";
+
+// Hydration keeps whatever the stored record already claims, so a value that
+// should never have been saved has to be dropped before the posting is re-read.
+function repairable(value: unknown): string | null {
+  const result = typeof value === "string" ? value : null;
+  return result && isPortalBoilerplate(result) ? null : result;
+}
 
 function recordFrom(candidate: Awaited<ReturnType<typeof getBackfillCandidates>>[number]) {
   return {
@@ -11,8 +18,8 @@ function recordFrom(candidate: Awaited<ReturnType<typeof getBackfillCandidates>>
     sourceId: String(candidate.source_id),
     url: String(candidate.url),
     title: String(candidate.title),
-    company: candidate.company as string | null,
-    location: candidate.location as string | null,
+    company: repairable(candidate.company),
+    location: repairable(candidate.location),
     snippet: candidate.snippet as string | null,
     publishedAt: candidate.published_at as string | null,
     rawData: candidate.raw_data as Record<string, unknown>,
