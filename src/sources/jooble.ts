@@ -50,7 +50,7 @@ export const joobleSource: JobSource = {
     let batchNumber = 0;
     for (const query of JOOBLE_QUERIES) {
       for (let page = 1; page <= 3; page += 1) {
-        const response = await fetchJson<JoobleResponse>(`https://cz.jooble.org/api/${apiKey()}`, {
+        const response = await fetchJson<JoobleResponse>(`https://jooble.org/api/${apiKey()}`, {
           method: "POST",
           body: JSON.stringify({ keywords: query, location: "Praha", radius: "16", page }),
         });
