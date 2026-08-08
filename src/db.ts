@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "./database.types";
+import { isPortalBoilerplate } from "./enrich";
 import { nextCompanyFailureState } from "./sources/companyLifecycle";
 import type {
   CareerAdapter,
@@ -383,33 +384,47 @@ export async function getCompanyClosureCandidates(companyId: string, before: str
 }
 
 /**
- * Source jobs whose canonical job is missing an employer or a location, from
- * back when the jobs.cz and Datacruit detail pages were parsed without their
- * markup. Both gaps are queried separately because PostgREST cannot OR across
- * two columns of an embedded resource.
+ * Source jobs whose canonical job is missing an employer or a location, or was
+ * given the job board operator's own details instead. Which jobs those are is
+ * decided here rather than in the query, because the boilerplate test is a
+ * pattern the database does not know about.
  */
 export async function getBackfillCandidates(limit: number) {
-  const select =
-    "source, source_id, url, title, company, location, snippet, published_at, raw_data, job_id, jobs!inner(company, location)";
-  const query = (column: "company" | "location") =>
-    db()
-      .from("source_jobs")
-      .select(select)
-      .eq("status", "active")
-      .not("job_id", "is", null)
-      .is(`jobs.${column}`, null)
-      .order("source_id")
-      .limit(limit);
+  const { data: jobs, error: jobsError } = await db()
+    .from("jobs")
+    .select("id, company, location")
+    .eq("status", "active");
+  assertNoError(jobsError, "Read jobs to repair");
 
-  const [byCompany, byLocation] = await Promise.all([query("company"), query("location")]);
-  assertNoError(byCompany.error, "Read backfill candidates");
-  assertNoError(byLocation.error, "Read backfill candidates");
+  const broken = (jobs ?? [])
+    .filter((job) => {
+      const company = job.company as string | null;
+      const location = job.location as string | null;
+      if (!company || !location) return true;
+      return isPortalBoilerplate(company) || isPortalBoilerplate(location);
+    })
+    .map((job) => String(job.id));
+  if (broken.length === 0) return [];
 
-  const merged = new Map<string, NonNullable<typeof byCompany.data>[number]>();
-  for (const row of [...(byCompany.data ?? []), ...(byLocation.data ?? [])]) {
-    merged.set(`${row.source}:${row.source_id}`, row);
+  const candidates: Awaited<ReturnType<typeof readSourceJobsFor>> = [];
+  for (const batch of chunks(broken, 100)) {
+    if (candidates.length >= limit) break;
+    candidates.push(...(await readSourceJobsFor(batch)));
   }
-  return [...merged.values()].slice(0, limit);
+  return candidates.slice(0, limit);
+}
+
+async function readSourceJobsFor(jobIds: string[]) {
+  const { data, error } = await db()
+    .from("source_jobs")
+    .select(
+      "source, source_id, url, title, company, location, snippet, published_at, raw_data, job_id",
+    )
+    .eq("status", "active")
+    .in("job_id", jobIds)
+    .order("source_id");
+  assertNoError(error, "Read backfill candidates");
+  return data ?? [];
 }
 
 /** Jobs left behind when a re-hydrated posting moved to a new fingerprint. */
