@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(14);
+select plan(15);
 
 select has_table('public', 'jobs', 'jobs table exists');
 select has_table('public', 'source_jobs', 'source_jobs table exists');
@@ -24,6 +24,11 @@ select ok(
 select ok(
   has_table_privilege('authenticated', 'public.jobs', 'select'),
   'authenticated users receive the explicit jobs grant'
+);
+select results_eq(
+  $$select count(*) from public.source_configs where interval_minutes <> 120$$,
+  $$values (0::bigint)$$,
+  'all acquisition sources use the two-hour interval'
 );
 
 insert into auth.users (id, email)
