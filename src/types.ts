@@ -10,7 +10,7 @@ export type SourceName = (typeof SOURCE_NAMES)[number];
 export type CrawlMode = "targeted" | "full";
 export type RemoteMode = "remote" | "hybrid" | "onsite" | "unknown";
 export type RelevanceTier = "strong" | "adjacent" | "explore" | "filtered_out";
-export type CareerAdapter = "ashby" | "greenhouse" | "lever" | "generic";
+export type CareerAdapter = "ashby" | "greenhouse" | "lever" | "recruitee" | "teamio" | "generic";
 
 export type MonitoredCompany = {
   id: string;

@@ -123,6 +123,39 @@ export function extractJsonLdJob(html: string, fallbackUrl: string): NormalizedJ
   };
 }
 
+const locationLabel =
+  /(?:location|lokalita|lokace|m[íi]sto (?:v[ýy]konu pr[áa]ce|pracovi[šs]t[ěe]))\s*[:–-]\s*([\p{L}][^|•·\n]{1,58})/iu;
+
+const knownCity =
+  /\b(Praha|Prague|Brno|Ostrava|Plze[ňn]|Olomouc|Liberec|Pardubice|Zl[íi]n|Hradec Kr[áa]lov[ée]|[ČC]esk[ée] Bud[ěe]jovice|Bratislava)\b/;
+
+/**
+ * Plenty of career sites publish no JobPosting metadata at all, but they still
+ * put the role in the page heading. The heading with the page text is enough to
+ * score the job; a missing heading is what tells a listing or a marketing page
+ * apart from an actual opening, so that case returns null.
+ */
+export function extractHeadingJob(html: string, url: string): NormalizedJob | null {
+  const $ = cheerio.load(html);
+  $("script,style,noscript,nav,footer,header,dialog").remove();
+  const title = text($("h1").first().text());
+  if (!title) return null;
+
+  const description = htmlToText($("main").html() ?? $("body").html());
+  const body = description ?? "";
+  const location = text(body.match(locationLabel)?.[1]) ?? text(body.match(knownCity)?.[0]);
+
+  return {
+    title,
+    company: null,
+    location,
+    remoteMode: inferRemoteMode(`${location ?? ""} ${body}`),
+    description,
+    canonicalUrl: url,
+    publishedAt: null,
+  };
+}
+
 export function extractHtmlFallback(html: string, record: DiscoveryRecord): NormalizedJob {
   const $ = cheerio.load(html);
   $("script,style,noscript,nav,footer,header,dialog").remove();

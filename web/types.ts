@@ -1,11 +1,11 @@
-import type { RelevanceTier, RemoteMode, SourceName } from "../src/types";
+import type { CareerAdapter, RelevanceTier, RemoteMode, SourceName } from "../src/types";
 
 export type MonitoredCompanyRow = {
   id: string;
   name: string;
   careers_url: string;
   enabled: boolean;
-  detected_adapter: "ashby" | "greenhouse" | "lever" | "generic" | null;
+  detected_adapter: CareerAdapter | null;
   adapter_key: string | null;
   last_checked_at: string | null;
   last_success_at: string | null;
