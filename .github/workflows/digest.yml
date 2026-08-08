@@ -1,0 +1,38 @@
+name: Daily digest
+
+on:
+  schedule:
+    - cron: "0 8 * * *"
+      timezone: "Europe/Prague"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sofhunter-digest
+  cancel-in-progress: false
+
+jobs:
+  telegram:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Send digest when Telegram is configured
+        run: |
+          if [[ -z "$TELEGRAM_BOT_TOKEN" || -z "$TELEGRAM_CHAT_ID" ]]; then
+            echo "Telegram is not configured yet; skipping digest."
+            exit 0
+          fi
+          bun src/cli.ts digest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          APP_URL: https://trveondemand.github.io/job-hunter/

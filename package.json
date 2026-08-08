@@ -1,0 +1,32 @@
+{
+  "name": "sofhunter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "vite build",
+    "check": "bun run typecheck && bun run lint && bun test",
+    "crawl": "bun src/cli.ts crawl",
+    "dev": "vite",
+    "digest": "bun src/cli.ts digest",
+    "format": "biome check --write .",
+    "lint": "biome check .",
+    "smoke": "bun src/cli.ts crawl --dry-run --force",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "2.112.2",
+    "cheerio": "1.2.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.7",
+    "@types/bun": "1.3.14",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.4",
+    "@vitejs/plugin-react": "6.0.5",
+    "typescript": "7.0.2",
+    "vite": "8.2.1"
+  }
+}

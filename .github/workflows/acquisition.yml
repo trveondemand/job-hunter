@@ -1,0 +1,49 @@
+name: Acquisition
+
+on:
+  schedule:
+    - cron: "17 */2 * * *"
+      timezone: "Europe/Prague"
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Source to run
+        type: choice
+        options: [all, startupjobs, jooble, jobs_cz, datacruit]
+        default: all
+      force:
+        description: Ignore the source interval
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sofhunter-acquisition
+  cancel-in-progress: false
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 55
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Run due connectors
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SECRET_KEY: ${{ secrets.SUPABASE_SECRET_KEY }}
+          JOOBLE_API_KEY: ${{ secrets.JOOBLE_API_KEY }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+          APP_URL: https://trveondemand.github.io/job-hunter/
+          CRAWL_SOURCE: ${{ inputs.source || 'all' }}
+          FORCE_RUN: ${{ inputs.force || false }}
+        run: |
+          args=(--source "$CRAWL_SOURCE")
+          if [[ "$FORCE_RUN" == "true" ]]; then args+=(--force); fi
+          bun src/cli.ts crawl "${args[@]}"
