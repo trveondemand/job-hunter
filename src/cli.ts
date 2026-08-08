@@ -34,7 +34,7 @@ if (command === "crawl") {
   await buildAndDeliverDigest(hasFlag("dry-run"));
 } else {
   console.error(
-    "Usage:\n  bun src/cli.ts crawl [--source all|startupjobs|jooble|jobs_cz|datacruit] [--mode targeted|full] [--dry-run] [--force]\n  bun src/cli.ts digest [--dry-run]",
+    "Usage:\n  bun src/cli.ts crawl [--source all|startupjobs|jooble|jobs_cz|datacruit|company_careers] [--mode targeted|full] [--dry-run] [--force]\n  bun src/cli.ts digest [--dry-run]",
   );
   process.exitCode = 1;
 }

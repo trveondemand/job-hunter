@@ -1,5 +1,6 @@
 import type { Session } from "@supabase/supabase-js";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { Companies } from "./Companies";
 import { JobCard } from "./JobCard";
 import { Login } from "./Login";
 import { supabase } from "./supabase";
@@ -7,14 +8,16 @@ import type { ReviewJob, ReviewState } from "./types";
 import { reviewFor } from "./types";
 
 type Queue = "unseen" | "interested" | "skipped";
+type Route = Queue | "companies";
 const queues: Array<{ id: Queue; label: string }> = [
   { id: "unseen", label: "Nové" },
   { id: "interested", label: "Zajímavé" },
   { id: "skipped", label: "Přeskočené" },
 ];
 
-function queueFromHash(): Queue {
+function routeFromHash(): Route {
   const value = window.location.hash.replace(/^#\/?/, "");
+  if (value === "companies") return value;
   return queues.some((queue) => queue.id === value) ? (value as Queue) : "unseen";
 }
 
@@ -22,7 +25,7 @@ export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [jobs, setJobs] = useState<ReviewJob[]>([]);
-  const [queue, setQueue] = useState<Queue>(queueFromHash);
+  const [route, setRoute] = useState<Route>(routeFromHash);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [busyJob, setBusyJob] = useState<string | null>(null);
@@ -40,7 +43,7 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    const onHashChange = () => setQueue(queueFromHash());
+    const onHashChange = () => setRoute(routeFromHash());
     window.addEventListener("hashchange", onHashChange);
     if (!window.location.hash) window.location.hash = "/unseen";
     return () => window.removeEventListener("hashchange", onHashChange);
@@ -81,7 +84,8 @@ export function App() {
       ),
     [jobs],
   );
-  const visibleJobs = jobs.filter((job) => reviewFor(job).state === queue);
+  const visibleJobs =
+    route === "companies" ? [] : jobs.filter((job) => reviewFor(job).state === route);
 
   async function updateReview(jobId: string, state: ReviewState) {
     setBusyJob(jobId);
@@ -117,12 +121,15 @@ export function App() {
         </button>
       </header>
 
-      <nav className="queue-tabs" aria-label="Review fronty">
+      <nav className="queue-tabs" aria-label="Sekce aplikace">
         {queues.map((item) => (
-          <a className={queue === item.id ? "active" : ""} href={`#/${item.id}`} key={item.id}>
+          <a className={route === item.id ? "active" : ""} href={`#/${item.id}`} key={item.id}>
             {item.label} <span>{counts[item.id]}</span>
           </a>
         ))}
+        <a className={route === "companies" ? "active" : ""} href="#/companies">
+          Firmy
+        </a>
       </nav>
 
       {error && (
@@ -134,21 +141,25 @@ export function App() {
         </div>
       )}
 
-      <main className="jobs-list">
-        {loading ? (
-          <p className="empty-state">Načítám nabídky…</p>
-        ) : visibleJobs.length === 0 ? (
-          <section className="empty-state">
-            <span>✓</span>
-            <h2>{queue === "unseen" ? "Fronta je čistá" : "Tady zatím nic není"}</h2>
-            <p>Další crawler přidá nové nabídky automaticky.</p>
-          </section>
-        ) : (
-          visibleJobs.map((job) => (
-            <JobCard job={job} busy={busyJob === job.id} onReview={updateReview} key={job.id} />
-          ))
-        )}
-      </main>
+      {route === "companies" ? (
+        <Companies />
+      ) : (
+        <main className="jobs-list">
+          {loading ? (
+            <p className="empty-state">Načítám nabídky…</p>
+          ) : visibleJobs.length === 0 ? (
+            <section className="empty-state">
+              <span>✓</span>
+              <h2>{route === "unseen" ? "Fronta je čistá" : "Tady zatím nic není"}</h2>
+              <p>Další crawler přidá nové nabídky automaticky.</p>
+            </section>
+          ) : (
+            visibleJobs.map((job) => (
+              <JobCard job={job} busy={busyJob === job.id} onReview={updateReview} key={job.id} />
+            ))
+          )}
+        </main>
+      )}
     </div>
   );
 }

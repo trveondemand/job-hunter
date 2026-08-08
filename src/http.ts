@@ -6,6 +6,7 @@ type FetchOptions = {
   body?: string;
   signal?: AbortSignal;
   retries?: number;
+  validateUrl?: (url: string) => Promise<void> | void;
 };
 
 const lastRequestByHost = new Map<string, number>();
@@ -31,24 +32,50 @@ async function throttle(url: string) {
   lastRequestByHost.set(host, Date.now());
 }
 
+async function requestWithSafeRedirects(url: string, options: FetchOptions): Promise<Response> {
+  let currentUrl = url;
+  let method = options.method ?? "GET";
+  let body = options.body;
+
+  for (let redirect = 0; redirect <= 5; redirect += 1) {
+    await options.validateUrl?.(currentUrl);
+    await throttle(currentUrl);
+    const response = await fetch(currentUrl, {
+      method,
+      headers: {
+        accept: "text/html,application/xhtml+xml,application/json,application/xml;q=0.9,*/*;q=0.8",
+        "accept-language": "cs-CZ,cs;q=0.9,en;q=0.7",
+        "user-agent": USER_AGENT,
+        ...options.headers,
+      },
+      body,
+      redirect: "manual",
+      signal: options.signal ?? AbortSignal.timeout(25_000),
+    });
+
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+    const location = response.headers.get("location");
+    if (!location) throw new Error(`Redirect from ${currentUrl} did not include a location`);
+    if (redirect === 5) throw new Error(`Too many redirects while fetching ${url}`);
+    currentUrl = new URL(location, currentUrl).toString();
+    if (
+      response.status === 303 ||
+      ((response.status === 301 || response.status === 302) && method === "POST")
+    ) {
+      method = "GET";
+      body = undefined;
+    }
+  }
+
+  throw new Error(`Unable to fetch ${url}`);
+}
+
 export async function fetchText(url: string, options: FetchOptions = {}): Promise<string> {
   const retries = options.retries ?? 2;
 
   for (let attempt = 0; attempt <= retries; attempt += 1) {
-    await throttle(url);
     try {
-      const response = await fetch(url, {
-        method: options.method ?? "GET",
-        headers: {
-          accept:
-            "text/html,application/xhtml+xml,application/json,application/xml;q=0.9,*/*;q=0.8",
-          "accept-language": "cs-CZ,cs;q=0.9,en;q=0.7",
-          "user-agent": USER_AGENT,
-          ...options.headers,
-        },
-        body: options.body,
-        signal: options.signal ?? AbortSignal.timeout(25_000),
-      });
+      const response = await requestWithSafeRedirects(url, options);
 
       if (response.ok) return response.text();
 

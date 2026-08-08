@@ -112,6 +112,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      monitored_companies: {
+        Row: {
+          adapter_key: string | null;
+          careers_url: string;
+          consecutive_failures: number;
+          created_at: string;
+          detected_adapter: string | null;
+          enabled: boolean;
+          id: string;
+          last_checked_at: string | null;
+          last_error: string | null;
+          last_success_at: string | null;
+          name: string;
+          updated_at: string;
+        };
+        Insert: {
+          adapter_key?: string | null;
+          careers_url: string;
+          consecutive_failures?: number;
+          created_at?: string;
+          detected_adapter?: string | null;
+          enabled?: boolean;
+          id?: string;
+          last_checked_at?: string | null;
+          last_error?: string | null;
+          last_success_at?: string | null;
+          name: string;
+          updated_at?: string;
+        };
+        Update: {
+          adapter_key?: string | null;
+          careers_url?: string;
+          consecutive_failures?: number;
+          created_at?: string;
+          detected_adapter?: string | null;
+          enabled?: boolean;
+          id?: string;
+          last_checked_at?: string | null;
+          last_error?: string | null;
+          last_success_at?: string | null;
+          name?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       notification_deliveries: {
         Row: {
           attempts: number;
@@ -230,6 +275,7 @@ export type Database = {
       source_jobs: {
         Row: {
           company: string | null;
+          company_id: string | null;
           content_hash: string | null;
           first_seen_at: string;
           job_id: string | null;
@@ -247,6 +293,7 @@ export type Database = {
         };
         Insert: {
           company?: string | null;
+          company_id?: string | null;
           content_hash?: string | null;
           first_seen_at?: string;
           job_id?: string | null;
@@ -264,6 +311,7 @@ export type Database = {
         };
         Update: {
           company?: string | null;
+          company_id?: string | null;
           content_hash?: string | null;
           first_seen_at?: string;
           job_id?: string | null;
@@ -280,6 +328,13 @@ export type Database = {
           url?: string;
         };
         Relationships: [
+          {
+            foreignKeyName: "source_jobs_company_id_fkey";
+            columns: ["company_id"];
+            isOneToOne: false;
+            referencedRelation: "monitored_companies";
+            referencedColumns: ["id"];
+          },
           {
             foreignKeyName: "source_jobs_job_id_fkey";
             columns: ["job_id"];

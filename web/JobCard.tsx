@@ -13,6 +13,7 @@ const sourceLabel = {
   jooble: "Jooble",
   jobs_cz: "Jobs.cz",
   datacruit: "Datacruit",
+  company_careers: "Career page",
 };
 
 function dateLabel(value: string | null): string {

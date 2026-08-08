@@ -335,6 +335,127 @@ button:disabled {
   margin: 0;
 }
 
+.companies-page {
+  display: grid;
+  gap: 18px;
+}
+.company-form-card {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.7fr) minmax(300px, 1.3fr);
+  gap: 28px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--paper);
+}
+.company-form-card h2 {
+  margin: 7px 0 0;
+  font-size: 24px;
+}
+.company-form-card form {
+  display: grid;
+  gap: 13px;
+}
+.company-form-card label:not(.checkbox-label) {
+  display: grid;
+  gap: 6px;
+  color: #555950;
+  font-size: 13px;
+  font-weight: 700;
+}
+.company-form-card input[type="text"],
+.company-form-card input[type="url"],
+.company-form-card input:not([type]) {
+  width: 100%;
+  padding: 10px 11px;
+  border: 1px solid #cfc9bc;
+  border-radius: 8px;
+  color: var(--ink);
+  background: white;
+  outline: none;
+}
+.company-form-card input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(49, 92, 75, 0.12);
+}
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+}
+.form-actions,
+.company-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.company-list {
+  display: grid;
+  gap: 10px;
+}
+.company-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 18px 20px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--paper);
+}
+.company-row.disabled {
+  opacity: 0.62;
+}
+.company-row-main {
+  min-width: 0;
+}
+.company-row-heading {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 9px;
+}
+.company-row h3 {
+  margin: 0;
+  font-size: 18px;
+}
+.company-row a {
+  display: block;
+  max-width: 640px;
+  margin-top: 5px;
+  overflow: hidden;
+  color: var(--green);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.company-row p {
+  margin: 7px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+.company-row .company-error {
+  color: #8c3e36;
+}
+.status-pill {
+  padding: 4px 8px;
+  border-radius: 999px;
+  color: var(--green);
+  background: var(--green-light);
+  font-size: 11px;
+  font-weight: 700;
+}
+.status-pill.error {
+  color: #8c3e36;
+  background: #f8ded9;
+}
+.danger-button {
+  color: #9a423a;
+}
+
 @media (max-width: 640px) {
   .app-shell {
     width: min(100% - 20px, 960px);
@@ -375,5 +496,20 @@ button:disabled {
   }
   .login-card {
     padding: 26px;
+  }
+  .company-form-card {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 17px;
+  }
+  .company-row {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .company-actions {
+    justify-content: flex-end;
+    border-top: 1px solid #ebe6dc;
+    padding-top: 9px;
   }
 }

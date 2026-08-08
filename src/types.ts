@@ -1,13 +1,34 @@
-export const SOURCE_NAMES = ["startupjobs", "jooble", "jobs_cz", "datacruit"] as const;
+export const SOURCE_NAMES = [
+  "startupjobs",
+  "jooble",
+  "jobs_cz",
+  "datacruit",
+  "company_careers",
+] as const;
 
 export type SourceName = (typeof SOURCE_NAMES)[number];
 export type CrawlMode = "targeted" | "full";
 export type RemoteMode = "remote" | "hybrid" | "onsite" | "unknown";
 export type RelevanceTier = "strong" | "adjacent" | "explore" | "filtered_out";
+export type CareerAdapter = "ashby" | "greenhouse" | "lever" | "generic";
+
+export type MonitoredCompany = {
+  id: string;
+  name: string;
+  careersUrl: string;
+  enabled: boolean;
+  detectedAdapter: CareerAdapter | null;
+  adapterKey: string | null;
+  lastCheckedAt: string | null;
+  lastSuccessAt: string | null;
+  consecutiveFailures: number;
+  lastError: string | null;
+};
 
 export type DiscoveryRecord = {
   source: SourceName;
   sourceId: string;
+  companyId?: string | null;
   url: string;
   title: string;
   company?: string | null;

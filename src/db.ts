@@ -1,10 +1,13 @@
 import { createHash } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "./database.types";
+import { nextCompanyFailureState } from "./sources/companyLifecycle";
 import type {
+  CareerAdapter,
   CrawlMode,
   CrawlStats,
   DiscoveryRecord,
+  MonitoredCompany,
   NormalizedJob,
   RelevanceResult,
   SourceName,
@@ -124,6 +127,78 @@ export async function failCrawlRun(
   assertNoError(updateError, `Record ${source} failure`);
 }
 
+function monitoredCompanyFromRow(
+  row: Database["public"]["Tables"]["monitored_companies"]["Row"],
+): MonitoredCompany {
+  return {
+    id: row.id,
+    name: row.name,
+    careersUrl: row.careers_url,
+    enabled: row.enabled,
+    detectedAdapter: row.detected_adapter as CareerAdapter | null,
+    adapterKey: row.adapter_key,
+    lastCheckedAt: row.last_checked_at,
+    lastSuccessAt: row.last_success_at,
+    consecutiveFailures: row.consecutive_failures,
+    lastError: row.last_error,
+  };
+}
+
+export async function listEnabledMonitoredCompanies(): Promise<MonitoredCompany[]> {
+  const { data, error } = await db()
+    .from("monitored_companies")
+    .select(
+      "id, name, careers_url, enabled, detected_adapter, adapter_key, last_checked_at, last_success_at, consecutive_failures, last_error, created_at, updated_at",
+    )
+    .eq("enabled", true)
+    .order("name");
+  assertNoError(error, "Read monitored companies");
+  return (data ?? []).map(monitoredCompanyFromRow);
+}
+
+export async function recordMonitoredCompanySuccess(
+  companyId: string,
+  adapter: CareerAdapter,
+  adapterKey: string | null,
+): Promise<void> {
+  const now = new Date().toISOString();
+  const { error } = await db()
+    .from("monitored_companies")
+    .update({
+      detected_adapter: adapter,
+      adapter_key: adapterKey,
+      last_checked_at: now,
+      last_success_at: now,
+      consecutive_failures: 0,
+      last_error: null,
+    })
+    .eq("id", companyId);
+  assertNoError(error, "Record monitored company success");
+}
+
+export async function recordMonitoredCompanyFailure(
+  company: MonitoredCompany,
+  message: string,
+  pauseEligible: boolean,
+): Promise<void> {
+  const previousWasPauseEligible = /HTTP (?:403|429)\b/.test(company.lastError ?? "");
+  const failureState = nextCompanyFailureState(
+    company.consecutiveFailures,
+    pauseEligible,
+    previousWasPauseEligible,
+  );
+  const { error } = await db()
+    .from("monitored_companies")
+    .update({
+      last_checked_at: new Date().toISOString(),
+      last_error: message.slice(0, 1_000),
+      consecutive_failures: failureState.consecutiveFailures,
+      enabled: failureState.enabled,
+    })
+    .eq("id", company.id);
+  assertNoError(error, "Record monitored company failure");
+}
+
 function chunks<T>(values: T[], size: number): T[][] {
   const result: T[][] = [];
   for (let index = 0; index < values.length; index += size) {
@@ -158,6 +233,7 @@ export async function upsertDiscoveryBatch(records: DiscoveryRecord[]): Promise<
         batch.map((record) => ({
           source: record.source,
           source_id: record.sourceId,
+          company_id: record.companyId ?? null,
           url: record.url,
           title: record.title,
           company: record.company ?? null,
@@ -288,6 +364,21 @@ export async function getClosureCandidates(source: SourceName, before: string) {
     .lt("last_seen_at", before)
     .limit(50);
   assertNoError(error, `Read ${source} closure candidates`);
+  return data ?? [];
+}
+
+export async function getCompanyClosureCandidates(companyId: string, before: string) {
+  const { data, error } = await db()
+    .from("source_jobs")
+    .select(
+      "source, source_id, company_id, url, title, company, location, snippet, published_at, raw_data, job_id",
+    )
+    .eq("source", "company_careers")
+    .eq("company_id", companyId)
+    .eq("status", "active")
+    .lt("last_seen_at", before)
+    .limit(1_000);
+  assertNoError(error, "Read company closure candidates");
   return data ?? [];
 }
 
