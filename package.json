@@ -11,6 +11,7 @@
     "digest": "bun src/cli.ts digest",
     "format": "biome check --write .",
     "lint": "biome check .",
+    "test:db": "env -u SUPABASE_ACCESS_TOKEN supabase test db --local supabase/tests/database",
     "smoke": "bun src/cli.ts crawl --dry-run --force",
     "typecheck": "tsc --noEmit"
   },

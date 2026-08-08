@@ -108,10 +108,10 @@ export async function crawlSource(name: SourceName, options: CrawlOptions): Prom
         const normalized = await source.hydrate(record);
         const relevance = evaluateRelevance(normalized);
         const fingerprint = createFingerprint(normalized);
-        const { job } = await saveHydratedJob(record, normalized, relevance, fingerprint);
+        const { job, isNew } = await saveHydratedJob(record, normalized, relevance, fingerprint);
         stats.jobsHydrated += 1;
 
-        if (isStrictHighFit(normalized, relevance) && telegramConfigured()) {
+        if (isNew && isStrictHighFit(normalized, relevance) && telegramConfigured()) {
           await deliverInstant(job, name);
         }
       }
