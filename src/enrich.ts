@@ -46,10 +46,20 @@ export function needsBasics(
   return !job.company && !anonymousSources.has(source);
 }
 
+// On job pages that render client-side there is nothing for the extractor to
+// read but the boilerplate, so it comes back with the portal operator's own
+// name and registered address instead of the employer's.
+const portalOperator = /alma career|menclova 2538|\blmc\b|jobs\.cz|datacruit|startupjobs/i;
+
+export function isPortalBoilerplate(value: string): boolean {
+  return portalOperator.test(value);
+}
+
 function cleaned(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const result = value.replace(/\s+/g, " ").trim();
   if (!result || result.length > 200 || !/\p{L}/u.test(result)) return null;
+  if (isPortalBoilerplate(result)) return null;
   return /nen[íi] uveden|neuveden|not (specified|stated|available)|^(unknown|n\/a)$/i.test(result)
     ? null
     : result;
@@ -82,7 +92,7 @@ export async function fillMissingBasics(job: NormalizedJob): Promise<NormalizedJ
             type: "json",
             schema: basicsSchema,
             prompt:
-              "Z tohoto pracovního inzerátu vytáhni zaměstnavatele a místo výkonu práce. U personálních agentur, které klienta neuvádějí, pole company vynech — nehádej.",
+              "Z tohoto pracovního inzerátu vytáhni zaměstnavatele a místo výkonu práce. Ignoruj údaje o provozovateli pracovního portálu v hlavičce a patičce stránky. U personálních agentur, které klienta neuvádějí, pole company vynech — nehádej.",
           },
         ],
       }),

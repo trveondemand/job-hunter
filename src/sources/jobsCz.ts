@@ -7,16 +7,24 @@ import { checkHtmlActive, extractJobLinks, hydrateHtml } from "./shared";
 
 const BASE_URL = "https://www.jobs.cz";
 
-// Detail pages carry no JSON-LD. The employer is only in the page title,
-// after an en dash: "Senior projektový manažer (m/ž) – Lidl Česká republika s.r.o."
+function employerFromTitle(title: string | null, separators: RegExp): string | null {
+  const parts = title?.split(separators) ?? [];
+  if (parts.length < 2) return null;
+  const candidate = cleanText(parts.at(-1));
+  // Some titles trail off into punctuation, which is not an employer.
+  return candidate && /\p{L}/u.test(candidate) ? candidate : null;
+}
+
+// Detail pages carry no JSON-LD. The common template ends the share title with
+// the employer ("Senior projektový manažer (m/ž) – Lidl Česká republika
+// s.r.o."); an older one leaves the share title bare and names the employer in
+// the page title instead ("Detail pozice | PPF a.s.").
 export function extractJobsCzDetail(html: string) {
   const $ = cheerio.load(html);
-  const title = cleanText($('meta[property="og:title"]').attr("content") ?? $("title").text());
-  const parts = title?.split(" – ") ?? [];
-  const company = parts.length > 1 ? cleanText(parts.at(-1)) : null;
   return {
-    // Some titles trail off into punctuation, which is not an employer.
-    company: company && /\p{L}/u.test(company) ? company : null,
+    company:
+      employerFromTitle(cleanText($('meta[property="og:title"]').attr("content")), / – /) ??
+      employerFromTitle(cleanText($("title").text()), / [–|] /),
     location: cleanText($('[data-test="jd-info-location"]').first().text()),
   };
 }

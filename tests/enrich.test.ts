@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { needsBasics, scoreHydrated } from "../src/enrich";
+import { isPortalBoilerplate, needsBasics, scoreHydrated } from "../src/enrich";
 import { evaluateRelevance } from "../src/relevance";
 import type { NormalizedJob, RelevanceResult } from "../src/types";
 
@@ -47,12 +47,28 @@ describe("paid enrichment triggers", () => {
   });
 });
 
+describe("portal boilerplate", () => {
+  // On client-rendered postings the only address in the markup is the job
+  // board's own, which is how jobs.cz's operator ended up stored as both an
+  // employer and a location.
+  test("recognises the operator behind jobs.cz", () => {
+    expect(isPortalBoilerplate("Alma Career Czechia s.r.o.")).toBe(true);
+    expect(isPortalBoilerplate("Praha 8, Libeň, Menclova 2538/2, 180 00")).toBe(true);
+  });
+
+  test("leaves real employers and places alone", () => {
+    expect(isPortalBoilerplate("PPF a.s.")).toBe(false);
+    expect(isPortalBoilerplate("Bühler Praha s.r.o.")).toBe(false);
+    expect(isPortalBoilerplate("Ocelářská 392/9, Praha – Libeň")).toBe(false);
+  });
+});
+
 describe("scoring a hydrated job", () => {
   test("still applies the gate when nothing could be recovered", async () => {
     const bare = { ...job, company: null, location: null };
     const scored = await scoreHydrated(bare, "jobs_cz");
     expect(scored.relevance.tier).toBe("filtered_out");
-    expect(scored.relevance.negativeRules).toContain("missing_company_and_location");
+    expect(scored.relevance.negativeRules).toContain("missing_company");
   });
 
   test("keeps a complete job untouched", async () => {

@@ -36,6 +36,20 @@ describe("jobs.cz detail parsing", () => {
     expect(extractJobsCzDetail(jobsCzPage("Projektový manažer – ,", "Praha")).company).toBeNull();
   });
 
+  test("falls back to the page title on the template with a bare share title", () => {
+    const page = `<html><head><meta property="og:title" content="Senior IT projektový manažer">
+      <title>Detail pozice | PPF a.s.</title></head>
+      <body><span data-test="jd-info-location">Praha 8</span></body></html>`;
+    expect(extractJobsCzDetail(page)).toEqual({ company: "PPF a.s.", location: "Praha 8" });
+  });
+
+  test("does not mistake a pipe inside the position for an employer", () => {
+    const page = `<html><head>
+      <meta property="og:title" content="Projektový manažer | AV a elektro technologie">
+      <title>Detail pozice | Grafton.cz</title></head><body></body></html>`;
+    expect(extractJobsCzDetail(page).company).toBe("Grafton.cz");
+  });
+
   test("leaves the company empty when the title has no employer", () => {
     expect(extractJobsCzDetail(jobsCzPage("Projektový manažer", "Praha"))).toEqual({
       company: null,

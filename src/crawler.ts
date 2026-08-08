@@ -1,3 +1,4 @@
+import { DISABLED_SOURCES } from "./config";
 import {
   completeCrawlRun,
   failCrawlRun,
@@ -202,6 +203,10 @@ async function crawlCompanyCareers(options: CrawlOptions): Promise<CrawlStats> {
 }
 
 export async function crawlSource(name: SourceName, options: CrawlOptions): Promise<CrawlStats> {
+  if (DISABLED_SOURCES.has(name)) {
+    console.log(`${name}: disabled`);
+    return emptyStats();
+  }
   if (name === "jooble" && !process.env.JOOBLE_API_KEY) {
     console.log("jooble: skipped until JOOBLE_API_KEY is configured");
     return emptyStats();

@@ -1,3 +1,5 @@
+import type { SourceName } from "./types";
+
 export const USER_AGENT =
   "Sofhunter/0.1 (+https://github.com/trveondemand/job-hunter; personal-use monitor)";
 
@@ -30,6 +32,14 @@ export const JOOBLE_QUERIES = [
   "professional services",
   "customer operations",
 ] as const;
+
+/**
+ * Datacruit is an agency board that never names its client, so no posting from
+ * it can satisfy the requirement that a job say who it is for. Crawling it only
+ * produces entries that are filtered out. Delete the entry here to bring it
+ * back — the adapter and its stored postings are untouched.
+ */
+export const DISABLED_SOURCES = new Set<SourceName>(["datacruit"]);
 
 export const REQUEST_DELAY_MS = Number(process.env.REQUEST_DELAY_MS ?? 1_250);
 // Safety valve, not an expectation: after the jobs.cz and Datacruit parsers

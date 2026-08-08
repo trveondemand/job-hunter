@@ -383,22 +383,33 @@ export async function getCompanyClosureCandidates(companyId: string, before: str
 }
 
 /**
- * Source jobs whose canonical job never learned an employer, from back when
- * the jobs.cz and Datacruit detail pages were parsed without their markup.
+ * Source jobs whose canonical job is missing an employer or a location, from
+ * back when the jobs.cz and Datacruit detail pages were parsed without their
+ * markup. Both gaps are queried separately because PostgREST cannot OR across
+ * two columns of an embedded resource.
  */
 export async function getBackfillCandidates(limit: number) {
-  const { data, error } = await db()
-    .from("source_jobs")
-    .select(
-      "source, source_id, url, title, company, location, snippet, published_at, raw_data, job_id, jobs!inner(company)",
-    )
-    .eq("status", "active")
-    .not("job_id", "is", null)
-    .is("jobs.company", null)
-    .order("source_id")
-    .limit(limit);
-  assertNoError(error, "Read backfill candidates");
-  return data ?? [];
+  const select =
+    "source, source_id, url, title, company, location, snippet, published_at, raw_data, job_id, jobs!inner(company, location)";
+  const query = (column: "company" | "location") =>
+    db()
+      .from("source_jobs")
+      .select(select)
+      .eq("status", "active")
+      .not("job_id", "is", null)
+      .is(`jobs.${column}`, null)
+      .order("source_id")
+      .limit(limit);
+
+  const [byCompany, byLocation] = await Promise.all([query("company"), query("location")]);
+  assertNoError(byCompany.error, "Read backfill candidates");
+  assertNoError(byLocation.error, "Read backfill candidates");
+
+  const merged = new Map<string, NonNullable<typeof byCompany.data>[number]>();
+  for (const row of [...(byCompany.data ?? []), ...(byLocation.data ?? [])]) {
+    merged.set(`${row.source}:${row.source_id}`, row);
+  }
+  return [...merged.values()].slice(0, limit);
 }
 
 /** Jobs left behind when a re-hydrated posting moved to a new fingerprint. */
