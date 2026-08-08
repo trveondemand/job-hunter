@@ -75,7 +75,19 @@ function locationState(job: NormalizedJob): { confirmed: boolean; unacceptable: 
   return { confirmed: false, unacceptable: false };
 }
 
-export function evaluateRelevance(job: NormalizedJob): RelevanceResult {
+export type RelevanceOptions = {
+  /**
+   * Rejects jobs that name neither an employer nor a place. Only meaningful
+   * once a job is hydrated: the discovery preview has not read the detail page
+   * yet, so almost nothing would survive it.
+   */
+  requireIdentity?: boolean;
+};
+
+export function evaluateRelevance(
+  job: NormalizedJob,
+  options: RelevanceOptions = {},
+): RelevanceResult {
   const title = normalize(job.title);
   const searchable = `${title} ${normalize(job.description)}`;
   const negativeRules = [
@@ -84,6 +96,9 @@ export function evaluateRelevance(job: NormalizedJob): RelevanceResult {
   ].filter((rule, index, values) => values.indexOf(rule) === index);
   const location = locationState(job);
 
+  if (options.requireIdentity && !job.company && !job.location) {
+    negativeRules.push("missing_company_and_location");
+  }
   if (location.unacceptable) negativeRules.push("location_outside_prague");
   if (!location.confirmed && !location.unacceptable) negativeRules.push("location_unknown");
 

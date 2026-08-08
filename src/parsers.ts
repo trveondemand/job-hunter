@@ -32,11 +32,13 @@ function findJobPosting(value: unknown): JsonObject | null {
   return null;
 }
 
-function text(value: unknown): string | null {
+export function cleanText(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const normalized = value.replace(/\s+/g, " ").trim();
   return normalized || null;
 }
+
+const text = cleanText;
 
 export function htmlToText(html: string | null | undefined): string | null {
   if (!html) return null;

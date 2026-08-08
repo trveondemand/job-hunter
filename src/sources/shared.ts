@@ -1,16 +1,41 @@
 import { createHash } from "node:crypto";
 import * as cheerio from "cheerio";
 import { fetchText, SourceHttpError } from "../http";
-import { extractHtmlFallback, extractJsonLdJob, inactiveText } from "../parsers";
+import { extractHtmlFallback, extractJsonLdJob, inactiveText, inferRemoteMode } from "../parsers";
 import type { DiscoveryRecord, NormalizedJob, SourceName } from "../types";
 
 export function stableId(value: string): string {
   return createHash("sha256").update(value).digest("hex").slice(0, 24);
 }
 
-export async function hydrateHtml(record: DiscoveryRecord): Promise<NormalizedJob> {
+/** Reads whatever a specific board puts in its markup instead of JSON-LD. */
+export type DetailExtractor = (html: string) => {
+  company?: string | null;
+  location?: string | null;
+};
+
+export async function hydrateHtml(
+  record: DiscoveryRecord,
+  extractDetail?: DetailExtractor,
+): Promise<NormalizedJob> {
   const html = await fetchText(record.url);
-  return extractJsonLdJob(html, record.url) ?? extractHtmlFallback(html, record);
+  const base = extractJsonLdJob(html, record.url) ?? extractHtmlFallback(html, record);
+  if (!extractDetail) return base;
+
+  const detail = extractDetail(html);
+  const company = base.company ?? detail.company ?? null;
+  const location = base.location ?? detail.location ?? null;
+  if (company === base.company && location === base.location) return base;
+
+  return {
+    ...base,
+    company,
+    location,
+    remoteMode:
+      base.remoteMode === "unknown"
+        ? inferRemoteMode([location, base.description].filter(Boolean).join(" "))
+        : base.remoteMode,
+  };
 }
 
 export async function checkHtmlActive(record: DiscoveryRecord): Promise<boolean> {

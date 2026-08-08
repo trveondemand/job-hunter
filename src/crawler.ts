@@ -12,6 +12,7 @@ import {
   startCrawlRun,
   upsertDiscoveryBatch,
 } from "./db";
+import { fillMissingBasics, needsBasics, resetEnrichmentBudget } from "./enrich";
 import { SourceHttpError } from "./http";
 import { createFingerprint, evaluateRelevance, isStrictHighFit } from "./relevance";
 import { sources } from "./sources";
@@ -29,6 +30,7 @@ import type {
   DiscoveryRecord,
   JobSource,
   MonitoredCompany,
+  NormalizedJob,
   SourceName,
 } from "./types";
 
@@ -44,6 +46,19 @@ const emptyStats = (): CrawlStats => ({
   newSourceJobs: 0,
   jobsHydrated: 0,
 });
+
+/**
+ * Scores a hydrated job, and pays Firecrawl to read the posting when a strong
+ * match is missing the employer or the place before scoring it again.
+ */
+async function scoreHydrated(job: NormalizedJob, source: SourceName) {
+  const relevance = evaluateRelevance(job, { requireIdentity: true });
+  if (!needsBasics(job, relevance, source)) return { job, relevance };
+
+  const enriched = await fillMissingBasics(job);
+  if (enriched === job) return { job, relevance };
+  return { job: enriched, relevance: evaluateRelevance(enriched, { requireIdentity: true }) };
+}
 
 function discoveryPreview(record: DiscoveryRecord) {
   return {
@@ -156,8 +171,10 @@ async function crawlCompanyCareers(options: CrawlOptions): Promise<CrawlStats> {
           const preliminary = evaluateRelevance(discoveryPreview(record));
           if (preliminary.tier === "filtered_out") continue;
 
-          const normalized = await hydrateCompanyJob(record);
-          const relevance = evaluateRelevance(normalized);
+          const { job: normalized, relevance } = await scoreHydrated(
+            await hydrateCompanyJob(record),
+            "company_careers",
+          );
           const fingerprint = createFingerprint(normalized);
           const { job, isNew } = await saveHydratedJob(record, normalized, relevance, fingerprint);
           stats.jobsHydrated += 1;
@@ -245,8 +262,10 @@ export async function crawlSource(name: SourceName, options: CrawlOptions): Prom
         const preliminary = evaluateRelevance(discoveryPreview(record));
         if (preliminary.tier === "filtered_out") continue;
 
-        const normalized = await source.hydrate(record);
-        const relevance = evaluateRelevance(normalized);
+        const { job: normalized, relevance } = await scoreHydrated(
+          await source.hydrate(record),
+          name,
+        );
         const fingerprint = createFingerprint(normalized);
         const { job, isNew } = await saveHydratedJob(record, normalized, relevance, fingerprint);
         stats.jobsHydrated += 1;
@@ -271,6 +290,7 @@ export async function crawlSource(name: SourceName, options: CrawlOptions): Prom
 
 export async function crawlSources(names: SourceName[], options: CrawlOptions): Promise<void> {
   const failures: string[] = [];
+  resetEnrichmentBudget();
   for (const name of names) {
     try {
       await crawlSource(name, options);

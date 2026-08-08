@@ -1,9 +1,23 @@
+import * as cheerio from "cheerio";
 import { JOBS_CZ_FULL_MAX_PAGES, JOBS_CZ_QUERIES, TARGETED_PAGES } from "../config";
 import { fetchText } from "../http";
+import { cleanText } from "../parsers";
 import type { DiscoveryBatch, JobSource } from "../types";
 import { checkHtmlActive, extractJobLinks, hydrateHtml } from "./shared";
 
 const BASE_URL = "https://www.jobs.cz";
+
+// Detail pages carry no JSON-LD. The employer is only in the page title,
+// after an en dash: "Senior projektový manažer (m/ž) – Lidl Česká republika s.r.o."
+export function extractJobsCzDetail(html: string) {
+  const $ = cheerio.load(html);
+  const title = cleanText($('meta[property="og:title"]').attr("content") ?? $("title").text());
+  const parts = title?.split(" – ") ?? [];
+  return {
+    company: parts.length > 1 ? cleanText(parts.at(-1)) : null,
+    location: cleanText($('[data-test="jd-info-location"]').first().text()),
+  };
+}
 
 async function discoverPage(query: string | null, page: number) {
   const url = new URL("/prace/praha/", BASE_URL);
@@ -48,6 +62,6 @@ export const jobsCzSource: JobSource = {
     }
   },
 
-  hydrate: hydrateHtml,
+  hydrate: (record) => hydrateHtml(record, extractJobsCzDetail),
   checkActive: checkHtmlActive,
 };

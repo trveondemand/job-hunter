@@ -20,6 +20,25 @@ describe("deterministic relevance", () => {
     expect(isStrictHighFit(baseJob, result, new Date("2026-08-08T10:00:00.000Z"))).toBe(true);
   });
 
+  test("rejects a hydrated job that names neither employer nor place", () => {
+    const job = { ...baseJob, company: null, location: null };
+    const result = evaluateRelevance(job, { requireIdentity: true });
+    expect(result.tier).toBe("filtered_out");
+    expect(result.negativeRules).toContain("missing_company_and_location");
+  });
+
+  test("keeps an anonymous agency posting that still names the place", () => {
+    const job = { ...baseJob, company: null };
+    expect(evaluateRelevance(job, { requireIdentity: true }).tier).toBe("strong");
+  });
+
+  test("leaves the discovery preview untouched so listings still get hydrated", () => {
+    const job = { ...baseJob, company: null, location: null, description: null };
+    const result = evaluateRelevance(job);
+    expect(result.tier).toBe("strong");
+    expect(result.negativeRules).not.toContain("missing_company_and_location");
+  });
+
   test("filters construction project management", () => {
     const job = { ...baseJob, title: "Project Manager – pozemní stavby" };
     const result = evaluateRelevance(job);

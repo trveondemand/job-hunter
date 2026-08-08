@@ -32,6 +32,9 @@ export const JOOBLE_QUERIES = [
 ] as const;
 
 export const REQUEST_DELAY_MS = Number(process.env.REQUEST_DELAY_MS ?? 1_250);
+// Safety valve, not an expectation: after the jobs.cz and Datacruit parsers
+// were fixed, only a handful of postings per run should still need paying for.
+export const FIRECRAWL_MAX_PER_RUN = Number(process.env.FIRECRAWL_MAX_PER_RUN ?? 15);
 export const TARGETED_PAGES = Number(process.env.TARGETED_PAGES ?? 3);
 export const JOBS_CZ_FULL_MAX_PAGES = Number(process.env.JOBS_CZ_FULL_MAX_PAGES ?? 350);
 export const DATACRUIT_MAX_PAGES = Number(process.env.DATACRUIT_MAX_PAGES ?? 100);
