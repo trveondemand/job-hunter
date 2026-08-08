@@ -119,12 +119,13 @@ export async function fillMissingBasics(job: NormalizedJob): Promise<NormalizedJ
 /**
  * Scores a hydrated job, and pays Firecrawl to read the posting when a strong
  * match is missing the employer or the place before scoring it again.
+ *
+ * Whether to pay is decided without the identity gate on purpose: a posting
+ * with neither field would already be filtered out by it, which is exactly the
+ * posting worth paying to rescue. The gate only decides the stored verdict.
  */
 export async function scoreHydrated(job: NormalizedJob, source: SourceName) {
-  const relevance = evaluateRelevance(job, { requireIdentity: true });
-  if (!needsBasics(job, relevance, source)) return { job, relevance };
-
-  const enriched = await fillMissingBasics(job);
-  if (enriched === job) return { job, relevance };
+  const provisional = evaluateRelevance(job);
+  const enriched = needsBasics(job, provisional, source) ? await fillMissingBasics(job) : job;
   return { job: enriched, relevance: evaluateRelevance(enriched, { requireIdentity: true }) };
 }

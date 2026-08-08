@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
-import { needsBasics } from "../src/enrich";
+import { needsBasics, scoreHydrated } from "../src/enrich";
+import { evaluateRelevance } from "../src/relevance";
 import type { NormalizedJob, RelevanceResult } from "../src/types";
 
 const job: NormalizedJob = {
@@ -37,5 +38,26 @@ describe("paid enrichment triggers", () => {
   test("never pays for a job that is not a strong match", () => {
     const adjacent: RelevanceResult = { ...strong, tier: "adjacent" };
     expect(needsBasics({ ...job, company: null, location: null }, adjacent, "jobs_cz")).toBe(false);
+  });
+
+  test("decides on the ungated verdict, or the gate would hide the very jobs worth paying for", () => {
+    const bare = { ...job, company: null, location: null };
+    expect(evaluateRelevance(bare, { requireIdentity: true }).tier).toBe("filtered_out");
+    expect(needsBasics(bare, evaluateRelevance(bare), "jobs_cz")).toBe(true);
+  });
+});
+
+describe("scoring a hydrated job", () => {
+  test("still applies the gate when nothing could be recovered", async () => {
+    const bare = { ...job, company: null, location: null };
+    const scored = await scoreHydrated(bare, "jobs_cz");
+    expect(scored.relevance.tier).toBe("filtered_out");
+    expect(scored.relevance.negativeRules).toContain("missing_company_and_location");
+  });
+
+  test("keeps a complete job untouched", async () => {
+    const scored = await scoreHydrated(job, "jobs_cz");
+    expect(scored.job).toBe(job);
+    expect(scored.relevance.tier).toBe("strong");
   });
 });
