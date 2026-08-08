@@ -32,6 +32,10 @@ describe("jobs.cz detail parsing", () => {
     ).toBe("MAXIN PRAGUE s.r.o.");
   });
 
+  test("ignores a trailing fragment that is only punctuation", () => {
+    expect(extractJobsCzDetail(jobsCzPage("Projektový manažer – ,", "Praha")).company).toBeNull();
+  });
+
   test("leaves the company empty when the title has no employer", () => {
     expect(extractJobsCzDetail(jobsCzPage("Projektový manažer", "Praha"))).toEqual({
       company: null,

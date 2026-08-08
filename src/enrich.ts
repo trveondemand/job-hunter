@@ -49,7 +49,7 @@ export function needsBasics(
 function cleaned(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const result = value.replace(/\s+/g, " ").trim();
-  if (!result || result.length > 200) return null;
+  if (!result || result.length > 200 || !/\p{L}/u.test(result)) return null;
   return /nen[íi] uveden|neuveden|not (specified|stated|available)|^(unknown|n\/a)$/i.test(result)
     ? null
     : result;

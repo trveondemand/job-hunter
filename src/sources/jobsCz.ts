@@ -13,8 +13,10 @@ export function extractJobsCzDetail(html: string) {
   const $ = cheerio.load(html);
   const title = cleanText($('meta[property="og:title"]').attr("content") ?? $("title").text());
   const parts = title?.split(" – ") ?? [];
+  const company = parts.length > 1 ? cleanText(parts.at(-1)) : null;
   return {
-    company: parts.length > 1 ? cleanText(parts.at(-1)) : null,
+    // Some titles trail off into punctuation, which is not an employer.
+    company: company && /\p{L}/u.test(company) ? company : null,
     location: cleanText($('[data-test="jd-info-location"]').first().text()),
   };
 }
