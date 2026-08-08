@@ -156,10 +156,17 @@ async function findMonitoredCompany(
   return null;
 }
 
+// Asking for missing fields to be omitted is not enough: the extractor likes
+// to answer "Není uvedeno." instead. An empty field reads better than that.
+const notStated =
+  /nen[íi] uveden|neuveden|nezji[šs]t[ěe]n|nen[íi] k dispozici|not (specified|stated|available|mentioned|provided)|^(unknown|nezn[áa]m[éo]|n\/a|-|—)$/i;
+
 function trimmed(value: unknown): string | null {
   if (typeof value !== "string") return null;
   const result = value.replace(/\s+/g, " ").trim();
-  return result ? result.slice(0, 600) : null;
+  if (!result) return null;
+  if (result.length < 80 && notStated.test(result)) return null;
+  return result.slice(0, 600);
 }
 
 Deno.serve(async (request) => {
