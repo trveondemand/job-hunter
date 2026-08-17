@@ -41,9 +41,9 @@ select ok(
   'authenticated users receive the explicit monitored companies grant'
 );
 select results_eq(
-  $$select count(*) from public.source_configs where source <> 'company_careers' and interval_minutes <> 120$$,
+  $$select count(*) from public.source_configs where source <> 'company_careers' and interval_minutes <> 240$$,
   $$values (0::bigint)$$,
-  'market acquisition sources use the two-hour interval'
+  'market acquisition sources use the four-hour interval'
 );
 select results_eq(
   $$select interval_minutes from public.source_configs where source = 'company_careers'$$,
